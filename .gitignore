@@ -1,3 +1,5 @@
 # Ignore compiled zips and release folders
 releases/
 *.zip
+cwebp/*
+!cwebp/.gitkeep
