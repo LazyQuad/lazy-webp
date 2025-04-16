@@ -1,10 +1,8 @@
 #!/bin/bash
 
-# ========== lazy-webp: Advanced Bash Script ==========
-# by LazyQuad - https://github.com/LazyQuad
-# Converts images to WebP with batch/manual mode, CLI flags, and SEO naming.
+# lazy-webp - Advanced Bash version
+# Author: LazyQuad - https://github.com/LazyQuad
 
-# -------- Default Config --------
 MODE=""
 BASE=""
 QUALITY=80
@@ -13,19 +11,15 @@ DELETE_ORIGINALS=false
 STRIP_META=false
 EXTENSIONS="jpg,jpeg,png"
 
-# -------- Detect cwebp --------
 if [[ -x "./cwebp/cwebp.exe" ]]; then
     CWEBP="./cwebp/cwebp.exe"
 elif command -v cwebp &> /dev/null; then
     CWEBP=$(command -v cwebp)
 else
-    echo "❌ Error: cwebp not found."
-    echo "Download it from https://developers.google.com/speed/webp/download"
-    echo "Place it in the ./cwebp/ folder or add to your system PATH."
+    echo "❌ cwebp not found. Please install it or drop cwebp.exe into ./cwebp/"
     exit 1
 fi
 
-# -------- Argument Parser --------
 while [[ $# -gt 0 ]]; do
     case $1 in
         --mode) MODE="$2"; shift ;;
@@ -40,34 +34,28 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# -------- Helper Functions --------
 convert_image() {
     input="$1"
     output="$2"
     cmd=""$CWEBP" -q $QUALITY"
-
     $STRIP_META && cmd="$cmd -metadata none"
     cmd="$cmd "$input" -o "$output""
-
-    echo "Running: $cmd"
+    echo "Converting: $input -> $output"
     eval $cmd
-
     $DELETE_ORIGINALS && rm -f "$input"
 }
 
-# -------- Main CLI/Prompt Logic --------
 run_conversion() {
     mkdir -p "$OUT_DIR"
     IFS=',' read -ra EXT_ARR <<< "$EXTENSIONS"
-
     shopt -s nullglob
     files=()
     for ext in "${EXT_ARR[@]}"; do
         files+=( *."$ext" *."${ext^^}" )
     done
 
-    if [[ "${#files[@]}" -eq 0 ]]; then
-        echo "No matching image files found."
+    if [[ ${#files[@]} -eq 0 ]]; then
+        echo "❌ No matching image files found."
         exit 1
     fi
 
@@ -81,18 +69,19 @@ run_conversion() {
     elif [[ "$MODE" == "manual" ]]; then
         for file in "${files[@]}"; do
             echo "File: $file"
-            read -p "New name (no extension): " newname
+            read -p "Enter name (no extension, or type QUIT to exit): " newname
+            [[ "$newname" == "QUIT" ]] && break
             output="$OUT_DIR/${newname}.webp"
             convert_image "$file" "$output"
         done
     else
-        echo "Invalid or missing --base for batch mode, or --mode unspecified."
+        echo "❌ Invalid mode or missing base name for batch mode."
         exit 1
     fi
 }
 
-# -------- If No Args, Run Interactive --------
 if [[ -z "$MODE" ]]; then
+    clear
     echo "🖼️  lazy-webp - Interactive Mode"
     echo "Choose mode:"
     echo "1) Batch rename (base name + number)"

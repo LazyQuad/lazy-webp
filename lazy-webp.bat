@@ -1,11 +1,18 @@
 @echo off
-:: lazy-webp.bat - WSL-aware launcher
+cls
+echo ===============================
+echo Welcome to lazy-webp by LazyQuad
+echo ===============================
+echo.
+echo Which version would you like to run?
+echo [Y] Advanced Bash (for WSL/Linux users)
+echo [N] Basic Windows Batch (recommended for most users)
+set /p CHOICE=Your choice (Y/N)? 
 
 where wsl >nul 2>&1
 if %errorlevel%==0 (
-    echo WSL detected.
-    set /p CHOICE=Do you want to run the advanced Bash version? (Y/N): 
     if /I "%CHOICE%"=="Y" (
+        echo Launching advanced Bash version...
         wsl bash ./advanced-convert.sh
         exit /b
     )

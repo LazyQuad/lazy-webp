@@ -1,4 +1,4 @@
-# lazy-webp
+# lazy-webp (v1.1.0)
 
 **lazy-webp** is a dual-mode WebP conversion tool by [LazyQuad](https://github.com/LazyQuad) designed for converting PNG and JPG images into optimized WebP format for SEO and web performance.
 
@@ -38,12 +38,23 @@ lazy-webp/
 ### 🪟 On Windows
 
 1. Drop `cwebp.exe` in the `cwebp/` folder
-2. Double-click `lazy-webp.bat` and follow prompts
-
-## 🔗 Download cwebp
-
-[Download from Google](https://developers.google.com/speed/webp/download)
+2. Run `lazy-webp.bat` or `basic-convert.bat` directly
 
 ---
 
-Created with ❤️ by [LazyQuad](https://github.com/LazyQuad)
+## 🆕 What's New in v1.1.0
+
+- 🖼️ Basic Batch Script Improvements:
+  - Cleaned up prompts and formatting
+  - Output directory auto-creates if missing
+  - Proper filename generation in batch mode
+  - Manual rename mode supports typing `QUIT` to exit mid-process
+  - Fixed delayed variable expansion and control flow
+
+---
+
+## 💡 Tips
+
+- In manual mode, type `QUIT` to exit the loop early
+- Hold `Ctrl+C` before the loop starts to safely abort
+- `lazy-webp.bat` lets you choose Bash or Batch on Windows
