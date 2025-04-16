@@ -1,4 +1,4 @@
-# lazy-webp (v1.1.0a)
+# lazy-webp (v1.1.0)
 
 **lazy-webp** is a dual-mode WebP conversion tool by [LazyQuad](https://github.com/LazyQuad)  
 designed for converting PNG and JPG images into optimized `.webp` format for SEO and performance.
