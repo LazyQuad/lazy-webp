@@ -1,0 +1,3 @@
+# Ignore compiled zips and release folders
+releases/
+*.zip
