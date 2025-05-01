@@ -3,3 +3,4 @@ releases/
 *.zip
 cwebp/*
 !cwebp/.gitkeep
+bak/
