@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-rem lazy-webp - Basic Batch Converter v1.3.2 (patched input/output capture)
+rem lazy-webp - Basic Batch Converter v1.4 
 
 cls
 echo =============================================
@@ -36,7 +36,7 @@ echo Output folder set to: !OUTDIR!
 echo.
 
 if not exist "!OUTDIR!" (
-    echo Output directory does not exist. Creating it...
+    echo Creating output directory...
     mkdir "!OUTDIR!"
 )
 
@@ -45,67 +45,116 @@ echo Enter quality [0-100, default: 80]
 set /p QUALITY=
 if "!QUALITY!"=="" set "QUALITY=80"
 
-rem Strip metadata
-echo Strip metadata? [Y/N, default: Y]
-set /p STRIP=
-if /I "!STRIP!"=="" set "STRIP=Y"
+rem Resize image to largest or longest side.
+set "DEFAULT_RESIZE=1920"
+echo.
+echo Resize images by longest side
+echo Enter max pixels for the longest side [!DEFAULT_RESIZE!]
+echo Type 0 to skip resizing
+set /p RESIZE_INPUT=
+if "!RESIZE_INPUT!"=="" set "RESIZE_INPUT=!DEFAULT_RESIZE!"
 
-rem Choose mode
-echo Batch convert and name [B] or Manual prompt [M] [default: B]
+for /f "delims=0123456789" %%A in ("!RESIZE_INPUT!") do set "RESIZE_INPUT=!DEFAULT_RESIZE!"
+
+if "!RESIZE_INPUT!"=="0" (
+    set "RESIZE_LONGEST="
+) else (
+    set "RESIZE_LONGEST=!RESIZE_INPUT!"
+)
+
+rem Strip metadata
+echo Strip metadata [Y/N, default: Y]
+set /p STRIP=
+if "!STRIP!"=="" set "STRIP=Y"
+
+echo Batch convert and name [B] or Manual [M] [default B]
 set /p MODE=
 if "!MODE!"=="" set "MODE=B"
 
-rem Base name if in batch mode
+REM ===== Naming logic =====
 if /I "!MODE!"=="B" (
-    echo Enter base filename [e.g. photo-name, default: lazy-webp]
+    echo Enter base filename [leave blank to keep original names]
     set /p BASENAME=
-    if "!BASENAME!"=="" set "BASENAME=lazy-webp"
+
+    if defined BASENAME (
+        REM sanitize
+        set "BASENAME=!BASENAME: =-!"
+    )
 )
 
-rem Check for cwebp
+REM ===== Locate tools =====
 set "CWEBP=.\cwebp\cwebp.exe"
 if not exist "%CWEBP%" (
-    echo [!] cwebp.exe not found in cwebp\cwebp.exe
-    echo Download from https://developers.google.com/speed/webp/download
+    echo cwebp.exe not found
     pause
     exit /b
 )
 
-set count=1
+set "MAGICK_EXE="
+set "MAGICK_PATH=.\magick\magick.exe"
+if exist "%MAGICK_PATH%" (
+    set "MAGICK_EXE=%MAGICK_PATH%"
+) else (
+    for %%I in (magick.exe) do set "MAGICK_EXE=%%~$PATH:I"
+)
 
+set "count=1"
+
+REM ===== MAIN LOOP =====
 for %%f in ("!INPUTDIR!\*.jpg" "!INPUTDIR!\*.jpeg" "!INPUTDIR!\*.png") do (
-    set "INPUT=%%f"
-    cls
-    echo Converting %%~nxf
+    if exist "%%~f" (
 
-    if /I "!MODE!"=="B" (
-        set "OUTPUT=!OUTDIR!\!BASENAME!-!count!.webp"
-        echo Saving to !OUTPUT!
-        if /I "!STRIP!"=="Y" (
-            call "%CWEBP%" -q !QUALITY! -metadata none "%%f" -o "!OUTPUT!"
-        ) else (
-            call "%CWEBP%" -q !QUALITY! "%%f" -o "!OUTPUT!"
-        )
-        set /a count+=1
-    ) else (
-        echo Enter new name for this file [or type QUIT to exit]
-        set /p NEWNAME=
-        if /I "!NEWNAME!"=="QUIT" goto :eof
-        if "!NEWNAME!"=="" (
-            echo No name entered. Skipping...
-        ) else (
-            set "OUTPUT=!OUTDIR!\!NEWNAME!.webp"
-            echo Saving to !OUTPUT!
-            if /I "!STRIP!"=="Y" (
-                call "%CWEBP%" -q !QUALITY! -metadata none "%%f" -o "!OUTPUT!"
+        echo.
+        echo Processing %%~nxf
+
+        set "INPUT_FOR_CWEBP=%%f"
+        set "TMP_RESIZED="
+
+        REM Resize safely (no upscaling)
+        if not "!RESIZE_LONGEST!"=="" (
+            if exist "!MAGICK_EXE!" (
+                set "TMP_RESIZED=%TEMP%\lazywebp_!RANDOM!.png"
+                "%MAGICK_EXE%" "%%f" -resize !RESIZE_LONGEST!x!RESIZE_LONGEST!^> -strip "!TMP_RESIZED!"
+                if exist "!TMP_RESIZED!" (
+                    set "INPUT_FOR_CWEBP=!TMP_RESIZED!"
+                )
             ) else (
-                call "%CWEBP%" -q !QUALITY! "%%f" -o "!OUTPUT!"
+                set "CWEBP_EXTRA_ARGS=-resize !RESIZE_LONGEST! 0"
             )
         )
+
+        REM ===== OUTPUT NAME LOGIC =====
+        if defined BASENAME (
+            set "OUTPUT=!OUTDIR!\!BASENAME!-!count!.webp"
+            set /a count+=1
+        ) else (
+            REM Default = original filename
+            set "OUTPUT=!OUTDIR!\%%~nf.webp"
+
+            REM Prevent overwrite
+            if exist "!OUTPUT!" (
+                set "OUTPUT=!OUTDIR!\%%~nf-!count!.webp"
+                set /a count+=1
+            )
+        )
+
+        echo Saving to !OUTPUT!
+
+        REM Encode
+        if /I "!STRIP!"=="Y" (
+            call "%CWEBP%" !CWEBP_EXTRA_ARGS! -q !QUALITY! -metadata none "!INPUT_FOR_CWEBP!" -o "!OUTPUT!"
+        ) else (
+            call "%CWEBP%" !CWEBP_EXTRA_ARGS! -q !QUALITY! "!INPUT_FOR_CWEBP!" -o "!OUTPUT!"
+        )
+
+        REM Cleanup
+        if defined TMP_RESIZED if exist "!TMP_RESIZED!" del /q "!TMP_RESIZED!"
+        set "TMP_RESIZED="
+        set "INPUT_FOR_CWEBP="
+        set "CWEBP_EXTRA_ARGS="
     )
 )
 
-endlocal
 echo.
-echo Conversion complete.
+echo Conversion complete
 pause
